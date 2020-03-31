@@ -8,13 +8,13 @@ var flash = require('express-flash');
 var session = require('express-session');
 var bodyParser = require('body-parser');
 
-var mysql = require('mysql');
-var connection  = require('./lib/db');
+// var mysql = require('mysql');
+// var connection  = require('./lib/db');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-var testRouter = require('./routes/test');
-var customersRouter = require('./routes/customers');
+// var testRouter = require('./routes/test');
+// var customersRouter = require('./routes/customers');
 
 var app = express();
 
@@ -31,8 +31,14 @@ io.on('connection', function (socket) {
 
   socket.on('led-change', function(data) {
       console.log('test' + data);
-      socket.broadcast.emit('message', data);
   });
+  socket.emit('welcome', {
+    message: 'dfsbsdfbsdfb'
+});
+
+  socket.on('atime', function(data) {
+    console.log(data);
+});
   socket.on('disconnect', function () {
       console.log('Client disconnect'.gray);
   });
@@ -60,8 +66,8 @@ app.use(expressValidator());
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/customers', customersRouter);
-app.use('/test', testRouter);
+// app.use('/customers', customersRouter);
+// app.use('/test', testRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
