@@ -3,10 +3,12 @@ var router = express.Router();
 var connection  = require('../lib/db');
 var mqttHandler = require('../lib/mqtt');
 var mqttClient = new mqttHandler().getInstance();
- 
+var LibLogger = require('../lib/log');
+var libLogger = new LibLogger().getInstance();
+
 router.get('/', function(req, res, next) {
       
- connection.query('SELECT * FROM Users ORDER BY id desc',function(err,rows)     {
+    connection.query('SELECT * FROM Users ORDER BY id desc',function(err,rows)     {
         if(err){
             req.flash('error', err); 
             res.render('users',{page_title:"Users - Node.js",data:''});   
@@ -31,12 +33,15 @@ router.post('/add', function(req, res, next){
     var errors = req.validationErrors()
      
     if( !errors ) {
+        var currunt_time = new Date(); 
         var user = {
             name: req.sanitize('name').escape().trim(),
-            code: req.sanitize('code').escape().trim()
+            code: req.sanitize('code').escape().trim(),
+            status: 'active',
+            created_at: currunt_time
         }
          
-     connection.query('INSERT INTO Users SET ?', user, function(err, result) {                
+        connection.query('INSERT INTO Users SET ?', user, function(err, result) {                
             if (err) {
                 req.flash('error', err);
 
@@ -54,7 +59,7 @@ router.post('/add', function(req, res, next){
                 req.flash('success', 'Data added successfully!');
                 res.redirect('/users');
             }
-        })
+        });
     }
     else {
         var error_msg = ''
@@ -72,22 +77,22 @@ router.post('/add', function(req, res, next){
  
 router.get('/edit/(:id)', function(req, res, next){
    
-connection.query('SELECT * FROM Users WHERE id = ' + req.params.id, function(err, rows, fields) {
-            if(err) throw err
+    connection.query('SELECT * FROM Users WHERE id = ' + req.params.id, function(err, rows, fields) {
+        if(err) throw err
 
-            if (rows.length <= 0) {
-                req.flash('error', 'Users not found with id = ' + req.params.id)
-                res.redirect('/users')
-            }
-            else {                 
-                res.render('users/edit', {
-                    title: 'Edit user',                     
-                    id: rows[0].id,
-                    name: rows[0].name,
-                    code: rows[0].code                    
-                })
-            }            
-        })
+        if (rows.length <= 0) {
+            req.flash('error', 'Users not found with id = ' + req.params.id)
+            res.redirect('/users')
+        }
+        else {                 
+            res.render('users/edit', {
+                title: 'Edit user',                     
+                id: rows[0].id,
+                name: rows[0].name,
+                code: rows[0].code                    
+            })
+        }            
+    })
   
 })
  
@@ -138,11 +143,23 @@ router.post('/update/:id', function(req, res, next) {
 router.get('/delete/(:id)', function(req, res, next) {
     var user = { id: req.params.id }
      
-connection.query('DELETE FROM Users WHERE id = ' + req.params.id, user, function(err, result) {        
+    connection.query('DELETE FROM Users WHERE id = ' + req.params.id, user, function(err, result) {        
         if (err) {
             req.flash('error', err)            
             res.redirect('/users')
         } else {
+
+            connection.query('SELECT * FROM Fingers WHERE user_id = ' + req.params.id, function(err, fingerRows, fields) {
+                if(err) throw err
+
+                if (fingerRows.length <= 0) {
+                    libLogger.log( 'ERROR: Fingers not found with user id = ' + req.params.id  );              
+                }
+                else{
+                    mqttClient.sendMessage('command', '2');
+                    mqttClient.sendMessage('delete_code', fingerRows[0].code);
+                }
+            });
             req.flash('success', 'User deleted successfully! id = ' + req.params.id)            
             res.redirect('/users')
         }
