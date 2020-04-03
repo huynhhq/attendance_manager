@@ -7,7 +7,13 @@ var LibLogger = require('../lib/log');
 var libLogger = new LibLogger().getInstance();
 
 router.get('/', function(req, res, next) {
-      
+    let str = 'user_123';
+    let userCode = str.substring( 0, str.indexOf('_') );
+    let finger = str.substring( str.indexOf('_') + 1 );
+
+    libLogger.log('USER_CODE: ' + userCode);
+    libLogger.log('FINGER: ' + finger);
+
     connection.query('SELECT * FROM Users ORDER BY id desc',function(err,rows)     {
         if(err){
             req.flash('error', err); 
@@ -156,8 +162,11 @@ router.get('/delete/(:id)', function(req, res, next) {
                     libLogger.log( 'ERROR: Fingers not found with user id = ' + req.params.id  );              
                 }
                 else{
+                    libLogger.log( 'SUCCESS: Delete Fingers with user id = ' + req.params.id  );              
                     mqttClient.sendMessage('command', '2');
-                    mqttClient.sendMessage('delete_code', fingerRows[0].code);
+                    mqttClient.sendMessage('deletecode', fingerRows[0].code);
+
+                    connection.query('DELETE FROM Fingers WHERE id = ' + fingerRows[0].id);
                 }
             });
             req.flash('success', 'User deleted successfully! id = ' + req.params.id)            
