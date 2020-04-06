@@ -4,12 +4,9 @@ var connection  = require('../lib/db');
 var LibLogger = require('../lib/log');
 var libLogger = new LibLogger().getInstance();
 
-function userAttendance(id, name, fingerId, exployerId, inTime, outTime){
-
-}
 router.get('/', function(req, res, next) {
      
-    connection.query('SELECT * FROM Users ORDER BY id desc',function(err,rows)     {
+    connection.query('SELECT * FROM Users', function(err,rows)     {
         if(err){
             req.flash('error', err); 
             return res.render('users',{page_title:"Users - Node.js",data:''});   
@@ -17,46 +14,56 @@ router.get('/', function(req, res, next) {
             var attendanceArr = []; 
             for (let index = 0; index < rows.length; index++) {
                 const element = rows[index];
-                var userAttendance = {};
+                let userAttendance = {};
                 userAttendance['id'] = element.id;
                 userAttendance['name'] = element.name;
                 userAttendance['code'] = element.code;
 
-                connection.query('SELECT * FROM Attendances where ( user_id = ' + element.id + ' AND DATE(created_at) = curdate() ) order by created_at limit 1',function(errInTime,inTimeRows) {
-                    
+                connection.query('SELECT * FROM Attendances where ( user_id = ' + element.id + ' AND DATE(created_at) = curdate() ) order by created_at limit 1', function(errInTime,inTimeRows) {
+                    libLogger.log('QUERY WITH USER_ID: ' + element.id);
                     if (errInTime) {
                         req.flash('error', errInTime); 
                         return res.render('attendances',{page_title:"Attendances - Node.js",data:''});   
                     }
                                         
                     if (inTimeRows.length <= 0) {
+                        libLogger.log('ADD WITH USER_ID: ' + element.id);
                         userAttendance[ 'inTime' ] = "Đang cập nhật";
                         userAttendance[ 'outTime' ] = "Đang cập nhật";
+                        attendanceArr.push( userAttendance );
                     }
                     else{
-                        userAttendance[ 'inTime' ] = inTimeRows[0].created_at;                           
+                        userAttendance[ 'inTime' ] = inTimeRows[0].created_at;         
                         connection.query('SELECT * FROM Attendances where ( user_id = ' + element.id + ' AND id != ' + inTimeRows[0].id + ' AND DATE(created_at) = curdate() ) order by created_at DESC limit 1',function(errOutTime,inOutRows) {
                             if (errOutTime) {
                                 req.flash('error', errOutTime); 
                                 return res.render('attendances',{page_title:"Attendances - Node.js",data:''});   
                             }
-
+                            
                             if( inOutRows.length <= 0)
                             {
+                                libLogger.log('ADD WITH USER_ID: ' + element.id);
                                 userAttendance[ 'outTime' ] = "Đang cập nhật";                                 
+                                attendanceArr.push( userAttendance );
                             } 
                             else
                             {
+                                libLogger.log('ADD WITH USER_ID: ' + element.id);
                                 userAttendance[ 'outTime' ] = inOutRows[0].created_at;
-                            }                            
+                                libLogger.log('OUTTIME OF USER ID: ' + element.id + ' IS: ' + userAttendance[ 'outTime' ]);                                              
+                                attendanceArr.push( userAttendance );
+                            }
                         });
                     }                                       
+                    libLogger.log('INTIME OF USER ID: ' + element.id + ' IS: ' + userAttendance[ 'inTime' ]);                  
                 });
 
-                attendanceArr.push( userAttendance );
             }
 
-            setTimeout(function(){ res.render('attendances',{page_title:"Users - Node.js",data:attendanceArr}); }, 500);
+            setTimeout(function(){ 
+                
+                res.render('attendances',{page_title:"Users - Node.js",data:attendanceArr}); 
+            }, 1000);
         
         }                            
     });        
