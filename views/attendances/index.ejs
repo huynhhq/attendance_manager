@@ -31,14 +31,11 @@
         <thead>
             <tr>
                 <th scope="col">#</th>
-                <th scope="col">Attendance ID</th>
-                <th scope="col">Finger ID</th>
                 <th scope="col">User ID</th>
                 <th scope="col">User Name</th>
                 <th scope="col">Employer ID</th>
-                <th scope="col">Created Date</th>
-                <th scope="col">Status</th>
-                <th width="200px">Action</th>
+                <th scope="col">In Time</th>
+                <th scope="col">Out Time</th>                
             </tr>
         </thead>
         <tbody>
@@ -53,32 +50,23 @@
                         <%= data[i].id%>
                     </td>
                     <td>
-                        <%= data[i].finger_id%>
-                    </td>
-                    <td>
-                        <%= data[i].user_id%>
-                    </td>
-                    <td>
                         <%= data[i].name%>
                     </td>
                     <td>
-                        <%= data[i].user_code%>
+                        <%= data[i].code%>
                     </td>
                     <td>
-                        <%= data[i].created_at%>
+                        <%= data[i].inTime ? data[i].inTime : 'Đang cập nhật' %>
                     </td>
                     <td>
-                        <%= data[i].status%>
-                    </td>
-                    <td>                        
-                        <a class="btn btn-danger delete" onclick="return alert('Are You sure?')" href="../fingers/delete/<%=data[i].id%>">Delete</a>
-                    </td>
+                        <%= data[i].outTime ? data[i].outTime : 'Đang cập nhật' %>
+                    </td>                   
                 </tr>
                 <% }
 
             }else{ %>
                 <tr>
-                    <td colspan="3">No finger</td>
+                    <td colspan="3">No data</td>
                 </tr>
             <% } %>
 
