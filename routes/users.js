@@ -7,12 +7,6 @@ var LibLogger = require('../lib/log');
 var libLogger = new LibLogger().getInstance();
 
 router.get('/', function(req, res, next) {
-    let str = 'user_123';
-    let userCode = str.substring( 0, str.indexOf('_') );
-    let finger = str.substring( str.indexOf('_') + 1 );
-
-    libLogger.log('USER_CODE: ' + userCode);
-    libLogger.log('FINGER: ' + finger);
 
     connection.query('SELECT * FROM Users ORDER BY id desc',function(err,rows)     {
         if(err){
@@ -20,6 +14,19 @@ router.get('/', function(req, res, next) {
             res.render('users',{page_title:"Users - Node.js",data:''});   
         }else{            
             res.render('users',{page_title:"Users - Node.js",data:rows});
+        }                            
+    });        
+});
+
+router.get('/get/list', function(req, res, next) {
+
+    connection.query('SELECT * FROM Users ORDER BY id desc',function(err,rows)     {
+        if(err){
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: false, message: 'Get User List Error' })); 
+        }else{            
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: true, data: rows })); 
         }                            
     });        
 });
@@ -205,6 +212,35 @@ router.get('/delete/(:id)', function(req, res, next) {
             });
             req.flash('success', 'User deleted successfully! id = ' + req.params.id)            
             res.redirect('/users')
+        }
+    })
+})
+
+router.get('/get/delete/(:id)', function(req, res, next) {
+    var user = { id: req.params.id }
+     
+    connection.query('DELETE FROM Users WHERE id = ' + req.params.id, user, function(err, result) {        
+        if (err) {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: false, message: 'Delete User Error' })); 
+        } else {
+
+            connection.query('SELECT * FROM Fingers WHERE user_id = ' + req.params.id, function(err, fingerRows, fields) {
+                if(err) throw err
+
+                if (fingerRows.length <= 0) {
+                    libLogger.log( 'ERROR: Fingers not found with user id = ' + req.params.id  );              
+                }
+                else{
+                    libLogger.log( 'SUCCESS: Delete Fingers with user id = ' + req.params.id  );              
+                    mqttClient.sendMessage('command', '2');
+                    mqttClient.sendMessage('deletecode', fingerRows[0].code);
+
+                    connection.query('DELETE FROM Fingers WHERE id = ' + fingerRows[0].id);
+                }
+            });
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: true, message: 'Delete Finger Success' })); 
         }
     })
 })

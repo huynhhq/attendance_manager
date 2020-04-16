@@ -89,6 +89,20 @@ router.get('/delete/(:id)', function(req, res, next) {
         }
     })
 })
+
+router.get('/get/delete/(:id)', function(req, res, next) {
+    var finger = { id: req.params.id }
+     
+    connection.query('DELETE FROM Fingers WHERE id = ' + req.params.id, finger, function(err, result) {        
+        if (err) {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: false, message: 'Delete Finger Error' })); 
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: true, message: 'Delete Finger Success' })); 
+        }
+    })
+})
  
  
 module.exports = router;
