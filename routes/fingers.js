@@ -31,6 +31,48 @@ router.get('/', function(req, res, next) {
         }                            
     });        
 });
+
+router.get('/get/list', function(req, res, next) {
+      
+    connection.query('SELECT * FROM Fingers ORDER BY id desc',function(err,rows)     {
+        if(err){
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: false, message: 'Get Finger List Error' })); 
+        }else{  
+            var fingerArr = [];    
+            for (let index = 0; index < rows.length; index++) {
+                const current_finger = rows[index];
+                let userFinger = {};
+                userFinger['id'] = current_finger.id;
+                userFinger['code'] = current_finger.code;
+                userFinger['user_id'] = current_finger.user_id;
+                connection.query('SELECT * FROM Users WHERE id = ' + current_finger.user_id, function(err, userRows, fields) {
+                    if(err) throw err
+
+                    if (userRows.length <= 0) {
+                        userFinger['name'] = 'Đang cập nhật';
+                        userFinger['user_code'] = 'Đang cập nhật';
+                        userFinger['created_at'] = current_finger.created_at;
+                        userFinger['status'] = current_finger.status;
+                        fingerArr.push( userFinger );                                               
+                    }
+                    else { 
+                        userFinger['name'] = userRows[0].name;
+                        userFinger['user_code'] = userRows[0].code;
+                        userFinger['created_at'] = current_finger.created_at;
+                        userFinger['status'] = current_finger.status;
+                        fingerArr.push( userFinger );                                                                                                                            
+                    } 
+                });
+            }
+
+            setTimeout(function(){ 
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify({ success: true, data:fingerArr })); 
+            }, 1000);                           
+        }                            
+    });        
+});
        
 router.get('/delete/(:id)', function(req, res, next) {
     var finger = { id: req.params.id }

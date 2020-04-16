@@ -36,7 +36,7 @@ router.post('/add', function(req, res, next){
     req.assert('name', 'Name is required').notEmpty();
     req.assert('code', 'Employer is required').notEmpty(); 
   
-    var errors = req.validationErrors()
+    var errors = req.validationErrors();
      
     if( !errors ) {
         var currunt_time = new Date(); 
@@ -99,8 +99,42 @@ router.get('/edit/(:id)', function(req, res, next){
             })
         }            
     })
-  
 })
+
+
+router.get('/add/(:name)/(:code)', function(req, res, next){
+    var currunt_time = new Date(); 
+    var user = {
+        name: req.params.name,
+        code: req.params.code,
+        status: 'active',
+        created_at: currunt_time
+    }
+    connection.query('SELECT * FROM Users WHERE code = ' + req.params.code, function(err, rows, fields) {
+        if (rows.length > 0) {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: false, message: 'Duplicated User' }));    
+        }
+        else
+        {
+            connection.query('INSERT INTO Users SET ?', user, function(err, result) {                
+                if (err) {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.send(JSON.stringify({ success: false, message: 'Add User Error' }));               
+                } else {  
+                    // Send message to IOT device
+                    mqttClient.sendMessage('command', '1');
+                    mqttClient.sendMessage('name', user.name);
+                    mqttClient.sendMessage('code', user.code);
+                    // End send message to IOT device  
+                    res.setHeader('Content-Type', 'application/json');
+                    res.send(JSON.stringify({ success: true, message: 'Add User Successfull' }));                           
+                }
+            });
+        }
+    });    
+
+});
  
 router.post('/update/:id', function(req, res, next) {
     req.assert('name', 'Name is required').notEmpty();

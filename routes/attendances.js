@@ -68,6 +68,71 @@ router.get('/', function(req, res, next) {
         }                            
     });        
 });
+
+router.get('/get/list', function(req, res, next) {
+     
+    connection.query('SELECT * FROM Users', function(err,rows)     {
+        if(err){
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({ success: false, message: 'Get Attendance List Error' }));   
+        }else{  
+            var attendanceArr = []; 
+            for (let index = 0; index < rows.length; index++) {
+                const element = rows[index];
+                let userAttendance = {};
+                userAttendance['id'] = element.id;
+                userAttendance['name'] = element.name;
+                userAttendance['code'] = element.code;
+
+                connection.query('SELECT * FROM Attendances where ( user_id = ' + element.id + ' AND DATE(created_at) = curdate() ) order by created_at limit 1', function(errInTime,inTimeRows) {
+                    libLogger.log('QUERY WITH USER_ID: ' + element.id);
+                    if (errInTime) {
+                        res.setHeader('Content-Type', 'application/json');
+                        res.send(JSON.stringify({ success: false, message: 'Get Attendance List Error' }));   
+                    }
+                                        
+                    if (inTimeRows.length <= 0) {
+                        libLogger.log('ADD WITH USER_ID: ' + element.id);
+                        userAttendance[ 'inTime' ] = "Đang cập nhật";
+                        userAttendance[ 'outTime' ] = "Đang cập nhật";
+                        attendanceArr.push( userAttendance );
+                    }
+                    else{
+                        userAttendance[ 'inTime' ] = inTimeRows[0].created_at;         
+                        connection.query('SELECT * FROM Attendances where ( user_id = ' + element.id + ' AND id != ' + inTimeRows[0].id + ' AND DATE(created_at) = curdate() ) order by created_at DESC limit 1',function(errOutTime,inOutRows) {
+                            if (errOutTime) {
+                                res.setHeader('Content-Type', 'application/json');
+                                res.send(JSON.stringify({ success: false, message: 'Get Attendance List Error' })); 
+                            }
+                            
+                            if( inOutRows.length <= 0)
+                            {
+                                libLogger.log('ADD WITH USER_ID: ' + element.id);
+                                userAttendance[ 'outTime' ] = "Đang cập nhật";                                 
+                                attendanceArr.push( userAttendance );
+                            } 
+                            else
+                            {
+                                libLogger.log('ADD WITH USER_ID: ' + element.id);
+                                userAttendance[ 'outTime' ] = inOutRows[0].created_at;
+                                libLogger.log('OUTTIME OF USER ID: ' + element.id + ' IS: ' + userAttendance[ 'outTime' ]);                                              
+                                attendanceArr.push( userAttendance );
+                            }
+                        });
+                    }                                       
+                    libLogger.log('INTIME OF USER ID: ' + element.id + ' IS: ' + userAttendance[ 'inTime' ]);                  
+                });
+
+            }
+
+            setTimeout(function(){ 
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify({ success: true, data:attendanceArr }));                
+            }, 1000);
+        
+        }                            
+    });        
+});
        
 router.get('/delete/(:id)', function(req, res, next) {
     var finger = { id: req.params.id }
